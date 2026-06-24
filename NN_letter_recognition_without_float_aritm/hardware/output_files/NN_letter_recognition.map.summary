@@ -1,0 +1,16 @@
+Analysis & Synthesis Status : Successful - Mon May 25 09:22:55 2026
+Quartus Prime Version : 18.1.0 Build 625 09/12/2018 SJ Lite Edition
+Revision Name : NN_letter_recognition
+Top-level Entity Name : NN_letter_recognition
+Family : MAX 10
+Total logic elements : 6,815
+    Total combinational functions : 4,849
+    Dedicated logic registers : 4,249
+Total registers : 4249
+Total pins : 177
+Total virtual pins : 0
+Total memory bits : 165,088
+Embedded Multiplier 9-bit elements : 6
+Total PLLs : 1
+UFM blocks : 0
+ADC blocks : 0

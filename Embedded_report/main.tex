@@ -1,0 +1,240 @@
+\documentclass{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{xcolor}
+
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{subcaption}
+
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta}
+
+\usepackage{multicol}
+\usepackage{scalerel}
+\usepackage{fontawesome}
+
+\usepackage[most]{tcolorbox}
+
+\usepackage{listings}
+
+\usepackage[
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=blue,
+    filecolor=blue
+]{hyperref}
+
+\usepackage{cleveref}
+
+\usepackage{neuralnetwork}
+
+\pgfplotsset{compat=1.18}
+
+\newsavebox\terasicbox
+\savebox\terasicbox{\includegraphics{logos/terasic-logo.jpg}}
+\def\terasic{\hspace{0.0em}\scalerel{\usebox{\terasicbox}}{\rule[-2\LMpt]{0pt}{11\LMpt}}\hspace{0.5em}}
+
+\definecolor{folder}{RGB}{153,153,153}
+\definecolor{file}{RGB}{110,144,169}
+
+\definecolor{backcolour}{rgb}{0.97,0.97,0.95}
+\definecolor{keywordcolor}{rgb}{0.86,0.12,0.34}
+\definecolor{commentcolor}{rgb}{0.34,0.54,0.32}
+\definecolor{stringcolor}{rgb}{0.76,0.38,0.11}
+\definecolor{identifiercolor}{rgb}{0.20,0.20,0.7}
+\definecolor{linenumbergray}{gray}{0.4}
+
+\lstdefinelanguage{sdc}{
+    keywords={create_clock, create_generated_clock, set_input_delay, set_output_delay, set_false_path, set_max_delay, derive_pll_clocks}, 
+    comment=[l]{\#}   
+}
+
+\newcommand{\FTdir}{}
+\def\FTdir(#1,#2,#3){%
+    \FTtext(#1,{{\color{folder}\faFolderOpen}\hspace{0.2em}#3})
+    (tmp.west)++(0.8em,-0.4em)node(#2){}
+    (tmp.west)++(1.5em,0)
+    ++(0,-1.3em) 
+}
+
+\def\FTfileC(#1,#2){%
+    \FTtext(#1,{
+        {\color{file}\makebox[0pt]{\faFileO}}%
+        \hspace{0.55em}%
+        \raisebox{0ex}{\color{file}\hspace{-0.72em}\scriptsize{C}}%
+        \hspace{0.7em}#2
+    })
+    (tmp.west)++(1.5em,0)
+    ++(0,-1.3em)
+}
+
+\def\FTfileH(#1,#2){%
+    \FTtext(#1,{
+        {\color{file}\makebox[0pt]{\faFileO}}%
+        \hspace{0.55em}%
+        \raisebox{0ex}{\color{file}\hspace{-0.72em}\scriptsize{H}}%
+        \hspace{0.7em}#2
+    })
+    (tmp.west)++(1.5em,0)
+    ++(0,-1.3em)
+}
+
+\def\FTfile(#1,#2){%
+    \FTtext(#1,{
+        {\color{file}\makebox[0pt]{\faFileO}}%
+        \hspace{0.55em}%
+        \raisebox{0ex}{\color{file}\hspace{-0.72em}\scriptsize{}}%
+        \hspace{0.7em}#2
+    })
+    (tmp.west)++(1.5em,0)
+    ++(0,-1.3em)
+}
+
+\newcommand{\FTtext}{}
+\def\FTtext(#1,#2){%
+    node(tmp){}
+    (#1|-tmp)++(0.6em,0)
+    node(tmp)[anchor=west,black]{\tt #2}
+    (#1)|-(tmp.west)
+    ++(0,-1.2em) 
+}
+
+\newcommand{\FTroot}{}
+\def\FTroot{tmp.west}
+
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    basicstyle=\ttfamily\small,
+    commentstyle=\color{commentcolor}\itshape,
+    keywordstyle=\color{keywordcolor}\bfseries,
+    stringstyle=\color{stringcolor},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{linenumbergray},
+    tabsize=2,
+    captionpos=b,
+    literate={~}{{\raisebox{0.6ex}{\texttildelow}}}{1}
+}
+
+\tcbset{
+    neuralbox/.style={
+        enhanced,
+        colback=yellow!5,           % background color (very light)
+        colframe=gray!100,          % border color
+        boxrule=1.2pt,              % border thickness
+        arc=6mm,                    % rounded corners
+        outer arc=6mm,
+        left=6mm,
+        right=6mm,
+        top=6mm,
+        bottom=6mm
+    }
+}
+
+\begin{document}
+    
+\begin{titlepage}
+	        
+	\centering
+	        
+	\vspace*{2cm}
+	        
+	\includegraphics[width=0.3\linewidth]{logos/Unipi_logo.jpg}
+	        
+	{\LARGE \textbf{University of Pisa}\\[1em]}
+	{\Large Department of Information Engineering\\[1em]}
+	{\large Master’s Degree in Electronic Engineering\\}
+    {\large Microelectronic System Design\\[3em]}
+    {\huge \textbf{Implementation of a Neural Network for Handwritten Character Recognition Using Altera MAX 10 FPGA}\\[1em]}
+    {\large Academic Year 2025/2026}
+            
+    \vfill
+            
+    \begin{flushleft}
+        \textbf{Students:}\\
+        Dario Aliberti\\
+        Tommaso Tonarini
+    \end{flushleft}
+            
+    \vspace{1cm}
+            
+    \end{titlepage}
+        
+    \newpage
+    \tableofcontents
+    
+    \newpage
+    \section{Introduction}
+    \input{chapters/introduction.tex}
+    
+    \newpage
+    \section{Hardware implementation}
+    \input{chapters/Description_of_architecture.tex}
+        
+    \newpage
+    \section{Software implementation}
+    \input{chapters/Analysis_of_the_code.tex}
+
+    \newpage
+    \section{Debug and Verification}
+    \input{chapters/debug_verification.tex}
+    
+    \newpage
+    \section{Conclusions}
+    \input{chapters/Conclusions.tex}
+
+    \newpage
+    \begin{thebibliography}{}
+
+    \bibitem{lecun1998}
+    Yann LeCun, Léon Bottou, Yoshua Bengio, Patrick Haffner (1998) 
+    \emph{Gradient-based learning applied to document recognition}, 
+    Proceedings of the IEEE, vol. 86, no. 11, pp. 2278--2324. 
+    DOI: \href{https://doi.org/10.1109/5.726791}{10.1109/5.726791}.
+
+    \bibitem{rocketboards2024}
+    RocketBoards.org (2024) 
+    \emph{24" Touch LCD Painter Demo on Atlas-SoC}. 
+    Available at: \href{https://www.rocketboards.org/foswiki/Projects/24TouchLCDPainterDemoOnAtlasSOC}
+    {rocketboards.org} 
+
+    \bibitem{terasic_lcd}
+    Terasic (2015) 
+    \emph{LT24 2.4-inch Touch LCD Module / Atlas-SoC Kit Resources}. 
+    Available at: \href{https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&CategoryNo=65&No=892&PartNo=2}
+    {terasic.com.tw} 
+
+    \bibitem{terasic_de10lite}
+    Terasic (2015) 
+    \emph{DE10-Lite Development and Education Board}. 
+    Available at: \href{https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&CategoryNo=234&No=1021}
+    {terasic.com.tw}
+
+    \bibitem{pytorch_nn}
+    PyTorch (2024) 
+    \emph{Defining a Neural Network}. 
+    Available at: \href{https://docs.pytorch.org/tutorials/recipes/recipes/defining_a_neural_network.html}
+    {pytorch.org} 
+
+    \bibitem{deeplearningmath_fcnn}
+    Liquet, B., Moka, S. and Nazarathy, Y. (2021) 
+    \emph{General Fully Connected Neural Networks}. 
+    Available at: \href{https://deeplearningmath.org/general-fully-connected-neural-networks}
+    {deeplearningmath.org}
+
+    \bibitem{altera_jtag_constraints_2026}
+    Intel Corporation (2026) 
+    \emph{USB Blaster III FPGA Development Cable User Guide: Creating JTAG Timing Constraints in Quartus Prime Software}, 
+    Altera Documentation, Section 5.4.1. 
+    Available at: \href{https://docs.altera.com/r/docs/864466/current/usb-blaster-iii-fpga-development-cable-user-guide/creating-jtag-timing-constraints-in-quartus-prime-software}{altera.com}.
+
+\end{thebibliography}
+		
+\end{document}

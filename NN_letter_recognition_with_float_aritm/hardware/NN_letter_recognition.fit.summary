@@ -1,0 +1,18 @@
+Fitter Status : Successful - Sun May 31 18:24:42 2026
+Quartus Prime Version : 18.1.0 Build 625 09/12/2018 SJ Lite Edition
+Revision Name : NN_letter_recognition
+Top-level Entity Name : NN_letter_recognition
+Family : MAX 10
+Device : 10M50DAF484C6GES
+Timing Models : Preliminary
+Total logic elements : 8,529 / 49,760 ( 17 % )
+    Total combinational functions : 7,138 / 49,760 ( 14 % )
+    Dedicated logic registers : 4,816 / 49,760 ( 10 % )
+Total registers : 4885
+Total pins : 177 / 360 ( 49 % )
+Total virtual pins : 0
+Total memory bits : 180,992 / 1,677,312 ( 11 % )
+Embedded Multiplier 9-bit elements : 16 / 288 ( 6 % )
+Total PLLs : 1 / 4 ( 25 % )
+UFM blocks : 0 / 1 ( 0 % )
+ADC blocks : 0 / 2 ( 0 % )

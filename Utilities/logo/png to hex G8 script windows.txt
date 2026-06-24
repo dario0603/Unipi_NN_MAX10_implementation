@@ -1,0 +1,5 @@
+download ImageMagick
+
+magick <input.png> -alpha off -colorspace Gray -type Grayscale -depth 8 <output.bmp>
+magick <input.bmp> -alpha off -colorspace Gray -type Grayscale -depth 8 <output.bmp>
+magick <input.bmp> h:<output.h>

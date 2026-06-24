@@ -1,0 +1,455 @@
+/*
+ * gui.c
+ *
+ *  Created on: 27 apr 2026
+ *      Author: posta
+ */
+
+#include <sys/times.h>
+
+#include "gui_config.h"
+#include "gui.h"
+#include "gui_debug.h"
+
+int downscale_matrix(Matrix in, Matrix *out, int dwn_fact)
+{
+
+	unsigned int x_dwn_matrix = in.row / dwn_fact;
+	unsigned int y_dwn_matrix = in.col / dwn_fact;
+	if(((*out).row != x_dwn_matrix) || ((*out).col != y_dwn_matrix)){
+		GUI_DEBUG_NN_PRINTF("ERROR: Downscale matrix error \n");
+		GUI_DEBUG_NN_PRINTF("Downscaled expected dimensions r:%d c:%d actual r:%d c:%d", x_dwn_matrix, y_dwn_matrix, (*out).row, (*out).col);
+		return 0;	//Exit failure
+	}
+
+	float acc = 0;
+	for(unsigned int i=0; i<DRAW_RECT_WIDTH; i+=dwn_fact){
+		for(unsigned int j=0; j<DRAW_RECT_HEIGHT; j+=dwn_fact){
+
+			for(unsigned int k=0; k<dwn_fact; k++){
+				for(unsigned int m=0; m<dwn_fact; m++){
+
+					//Matrix indexing syntax
+					//m[ column * row_length + row ] -> m[row][column]
+
+					acc += in.data[(j+m) * in.row + (i+k)];
+				}
+			}
+
+			acc = acc/25; //the new value is represented with gray scale on 8 bit (256)
+
+			//regulate the offset
+			acc = (acc > 0.0f) ? (acc+OFFSET_VALUE) : (acc);
+			acc = (acc > 1.0f) ? (1.0f) : (acc);
+
+			//Matrix indexing syntax
+			//m[ column * row_length + row ] -> m[row][column]
+
+			(*out).data[(j/dwn_fact) * (*out).row + (i/dwn_fact)] = acc;
+			acc = 0;
+		}
+	}
+
+	return 1;	//Exit success
+}
+
+void GUI_DeskInit(alt_video_display *display, DESK_INFO *pDeskInfo){
+
+    RECT rc;
+    //setting the drawing box
+    //far right(x=240), far left(x=0), far top(y=0), far bottom(y=320)
+    rc.right = (display->width)-DRAW_DIST_FROM_RIGHT;
+    rc.left = rc.right - DRAW_RECT_HEIGHT;
+    rc.bottom = (display->height) - DRAW_DIST_FROM_BOTTOM;
+    rc.top = rc.bottom - DRAW_RECT_WIDTH;
+
+    // desk drawing area
+    //RectSet(&pDeskInfo->rcPaint, rc.left, rc.right, rc.top, rc.bottom);
+    RectCopy(&pDeskInfo->rcPaint, &rc);
+
+    //setting the buttons box
+    rc.left = (display->width) - BUTTON_BOX_DIST_FROM_BOTTOM - symbol_set[ERASE_BUTTON_NOT_PRESSED].border_width;
+    rc.right = rc.left + symbol_set[ERASE_BUTTON_NOT_PRESSED].border_width;
+    rc.top = BUTTON_BOX_DIST_FROM_EDGE;
+    rc.bottom = BUTTON_BOX_DIST_FROM_EDGE + symbol_set[ERASE_BUTTON_NOT_PRESSED].border_height;
+    RectCopy(&pDeskInfo->rcButtons[ERASE_BUTTON], &rc);
+
+    rc.left = rc.left - symbol_set[PEN_BUTTON_NOT_PRESSED].border_width;
+    rc.right = rc.left + symbol_set[PEN_BUTTON_NOT_PRESSED].border_width;
+    rc.top = BUTTON_BOX_DIST_FROM_EDGE;
+    rc.bottom = BUTTON_BOX_DIST_FROM_EDGE + symbol_set[PEN_BUTTON_NOT_PRESSED].border_height;
+    RectCopy(&pDeskInfo->rcButtons[PEN_BUTTON], &rc);
+
+    rc.left = rc.left - symbol_set[BACKSPACE_BUTTON_NOT_PRESSED].border_width;
+    rc.right = rc.left + symbol_set[BACKSPACE_BUTTON_NOT_PRESSED].border_width;
+    rc.top = BUTTON_BOX_DIST_FROM_EDGE;
+    rc.bottom = BUTTON_BOX_DIST_FROM_EDGE + symbol_set[BACKSPACE_BUTTON_NOT_PRESSED].border_height;
+    RectCopy(&pDeskInfo->rcButtons[BACKSPACE_BUTTON], &rc);
+
+}
+
+void GUI_DeskDraw(alt_video_display *display, DESK_INFO *pDeskInfo){
+
+	int x0, x1, y0, y1;
+    RECT rc;
+
+	//drawing box rectangle
+    RectCopy(&rc, &pDeskInfo->rcPaint);
+    vid_draw_round_corner_box(rc.left, rc.top, rc.right, rc.bottom, DRAW_RECT_RADIUS, BOX_COLOR, DO_NOT_FILL, display);
+
+	//letter bar rectangle
+	const int bar_length = LETTER_BOX_DIM*LETTER_BOX_NUM;
+	x0 = LETTER_BOX_DIST_FROM_TOP;
+	x1 = x0 + LETTER_BOX_DIM;
+	y0 = (bar_length < (display->height)) ? ((display->height)-bar_length)/2 : 0;
+	y1 = y0 + LETTER_BOX_DIM;
+	for(int i=0; i<LETTER_BOX_NUM; i++){
+		rc.left = x0;
+		rc.right = x1;
+		rc.top = y0;
+		rc.bottom = y1;
+		RectCopy(&pDeskInfo->rcLetterBox[i], &rc);
+		vid_draw_box(x0, y0, x1, y1, BOX_COLOR, DO_NOT_FILL, display);
+		y0 = y1;
+		y1 = y0 + LETTER_BOX_DIM;
+		//overflow check
+		if(y1 > (display->height))
+			break;
+	}
+
+}
+
+void GUI_SymbolsDraw(alt_video_display *display, DESK_INFO *pDeskInfo, int PressedButton){
+    
+	int active;
+
+	//print the symbols
+    active = pDeskInfo->Button_Index;
+	int button_x, button_y;
+	if(active == ERASE_BUTTON && PressedButton){
+		button_x = (display->width) - BUTTON_BOX_DIST_FROM_BOTTOM - symbol_set[ERASE_BUTTON_PRESSED].border_width;
+		button_y = BUTTON_BOX_DIST_FROM_EDGE + (symbol_set[ERASE_BUTTON_PRESSED].border_height - symbol_set[ERASE_BUTTON_PRESSED].height)/2;
+		vid_print_symbol_alpha(button_x, button_y, BUTTON_BOX_COLOR, BUTTON_BOX_BACK_COLOR, ERASE_BUTTON_PRESSED, symbol_set, display, INVERT, 1);
+	}else{
+		button_x = (display->width) - BUTTON_BOX_DIST_FROM_BOTTOM - symbol_set[ERASE_BUTTON_NOT_PRESSED].border_width;
+		button_y = BUTTON_BOX_DIST_FROM_EDGE + (symbol_set[ERASE_BUTTON_NOT_PRESSED].border_height - symbol_set[ERASE_BUTTON_NOT_PRESSED].height)/2;
+		vid_print_symbol_alpha(button_x, button_y, BUTTON_BOX_COLOR, BUTTON_BOX_BACK_COLOR, ERASE_BUTTON_NOT_PRESSED, symbol_set, display, INVERT, 1);
+	}
+
+	if(active == PEN_BUTTON){
+		button_x = button_x - symbol_set[PEN_BUTTON_PRESSED].border_width;
+		button_y = BUTTON_BOX_DIST_FROM_EDGE + (symbol_set[PEN_BUTTON_PRESSED].border_height - symbol_set[PEN_BUTTON_PRESSED].height)/2;
+		vid_print_symbol_alpha(button_x, button_y, BUTTON_BOX_COLOR, BUTTON_BOX_BACK_COLOR, PEN_BUTTON_PRESSED, symbol_set, display, INVERT, 1);
+	}else{
+		button_x = button_x - symbol_set[PEN_BUTTON_NOT_PRESSED].border_width;
+		button_y = BUTTON_BOX_DIST_FROM_EDGE + (symbol_set[PEN_BUTTON_NOT_PRESSED].border_height - symbol_set[PEN_BUTTON_NOT_PRESSED].height)/2;
+		vid_print_symbol_alpha(button_x, button_y, BUTTON_BOX_COLOR, BUTTON_BOX_BACK_COLOR, PEN_BUTTON_NOT_PRESSED, symbol_set, display, INVERT, 1);
+	}
+
+	if(active == BACKSPACE_BUTTON && PressedButton){
+		button_x = button_x - symbol_set[BACKSPACE_BUTTON_PRESSED].border_width;
+		button_y = BUTTON_BOX_DIST_FROM_EDGE + (symbol_set[BACKSPACE_BUTTON_PRESSED].border_width - symbol_set[BACKSPACE_BUTTON_PRESSED].width)/2;
+		vid_print_symbol_alpha(button_x , button_y, BUTTON_BOX_COLOR, BUTTON_BOX_BACK_COLOR, BACKSPACE_BUTTON_PRESSED, symbol_set, display, INVERT, 3);
+	}else{
+		button_x = button_x - symbol_set[BACKSPACE_BUTTON_NOT_PRESSED].border_width;
+		button_y = BUTTON_BOX_DIST_FROM_EDGE + (symbol_set[BACKSPACE_BUTTON_NOT_PRESSED].border_width - symbol_set[BACKSPACE_BUTTON_NOT_PRESSED].width)/2;
+		vid_print_symbol_alpha(button_x , button_y, BUTTON_BOX_COLOR, BUTTON_BOX_BACK_COLOR, BACKSPACE_BUTTON_NOT_PRESSED, symbol_set, display, INVERT, 3);
+	}
+
+}
+
+int GUI_CheckButton(DESK_INFO *pDeskInfo, POINT *pt){
+
+    int ButtonId = BTN_NONE;
+    int i;
+
+    for(i=0;i<BTN_NUM && (ButtonId == BTN_NONE);i++){
+        if (IsPtInRect(pt, &pDeskInfo->rcButtons[i]))
+            ButtonId = i;
+    }
+    return ButtonId;
+
+}
+
+void GUI_ClearPaintArea(alt_video_display *pDisplay, DESK_INFO *pDeskInfo){
+    RECT rc;
+    RectCopy(&rc, &pDeskInfo->rcPaint);
+    RectInflate(&rc, -1, -1);
+    vid_draw_box(rc.left, rc.top, rc.right, rc.bottom, BACKGROUND_COLOR, DO_FILL, pDisplay);
+}
+
+void GUI_ClearButtonArea(alt_video_display *pDisplay, DESK_INFO *pDeskInfo){
+    RECT rc;
+    for(unsigned int i=0; i<= BACKSPACE_BUTTON; i++)
+    {
+		RectCopy(&rc, &pDeskInfo->rcButtons[i]);
+		RectInflate(&rc, 1, 1);
+		vid_draw_box(rc.left, rc.top, rc.right, rc.bottom, BACKGROUND_COLOR, DO_FILL, pDisplay);
+    }
+	
+}
+
+void GUI_ClearLetterBoxArea(alt_video_display *pDisplay, DESK_INFO *pDeskInfo){
+    RECT rc;
+    for(unsigned int i=0; i<= LETTER_BOX_NUM; i++)
+    {
+		RectCopy(&rc, &pDeskInfo->rcLetterBox[i]);
+		RectInflate(&rc, 1, 1);
+		vid_draw_box(rc.left, rc.top, rc.right, rc.bottom, BACKGROUND_COLOR, DO_FILL, pDisplay);
+    }
+
+}
+
+void GUI_ClearSelectedLetter(alt_video_display *pDisplay, DESK_INFO *pDeskInfo, int letter_index){
+    RECT rc;
+
+	RectCopy(&rc, &pDeskInfo->rcLetterBox[(LETTER_BOX_NUM-1)-letter_index]);
+	//RectInflate(&rc, 1, 1);
+	vid_draw_box (rc.left, rc.top, rc.right, rc.bottom, BACKGROUND_COLOR, DO_FILL, pDisplay);
+
+}
+
+void GUI_init(alt_video_display *pDisplay, DESK_INFO *DeskInfo, RECT *rcTouch)
+{
+
+	//init LCD
+	LCD_Init();
+
+	//clean LCD
+    vid_clean_screen(pDisplay, BACKGROUND_COLOR);
+
+    //Wait 1s
+	usleep(1*1000*1000);
+
+    (*DeskInfo).Button_Index = PEN_BUTTON;
+
+    GUI_DeskInit(pDisplay, DeskInfo);
+    GUI_DeskDraw(pDisplay, DeskInfo);
+    GUI_SymbolsDraw(pDisplay, DeskInfo, 0);
+
+    RectCopy(rcTouch, &(*DeskInfo).rcPaint);
+    RectInflate(rcTouch, -2-DOT_SIZE, -2-DOT_SIZE);
+
+}
+
+int NN_Matrix_init(Matrix *in, Matrix *out, NN_f_conn *nn){
+
+	Matrix error = matrix_error();
+
+	//Initialize the neural network matrix
+	#ifdef TRANSPOSED_WEIGHT_MATRIX
+		*in = matrix_init(1, WEIGHT_AND_BIAS[WEIGHT_NN_1].col);
+    #else
+    	*in = matrix_init(1, WEIGHT_AND_BIAS[WEIGHT_NN_1].row);
+    #endif
+
+	if(matrix_compare(in, &error) == 1)
+		return 0;	//Exit failure
+
+	*out = matrix_init(1, WEIGHT_AND_BIAS[BIAS_NN_3].col);
+	if(matrix_compare(out, &error) == 1)
+		return 0;	//Exit failure
+
+	*nn = NN_init();
+
+	return 1;	//Exit success
+
+}
+
+int GUI(alt_video_display *pDisplay, 
+		 TOUCH_HANDLE *pTouch, 
+		 Matrix *in,
+		 Matrix *out,
+		 NN_f_conn *nn,
+		 DESK_INFO *DeskInfo, 
+		 RECT *rcTouch)
+{
+	
+	//Return status
+	int status = 1;		//Default success
+
+	//Pressed button and active drawing flags
+	int PressedButton = 0;
+	int ActiveDrawing = 0;
+
+	//Index of written letter
+	int letter_index = 0;
+
+	//Touch screen points
+	POINT Pt, Pt_prev;
+
+	//Timer to wait after the pen leave the screen
+	long long int t_wait_1, t_wait_0;
+	t_wait_0 = t_wait_1 = times(NULL);
+
+	//Timer to calculate inference time
+	long long int t_inf_1, t_inf_0;
+	t_inf_0 = t_inf_1 = times(NULL);
+
+	//Matrix that holds the letters written inside the drawing area
+	Matrix drawing_grayscale_m = matrix_null(DRAW_RECT_WIDTH, DRAW_RECT_HEIGHT);
+	Matrix downscaled_grayscale_m = matrix_null(X_DIM, Y_DIM);
+    while(1){
+
+		//Wait that someone touch the screen
+		int X, Y;
+		if(Touch_GetXY(pTouch, &X, &Y)){
+
+			PtSet(&Pt, X, Y);
+			int ButtonId = GUI_CheckButton(DeskInfo, &Pt);
+
+			GUI_DEBUG_TOUCH_PRINTF("x=%d, y=%d\r\n", X, Y);
+			GUI_DEBUG_TOUCH_PRINTF("Button index=%d\n", (*DeskInfo).Button_Index);
+
+			if (IsPtInRect(&Pt, rcTouch) &&  (*DeskInfo).Button_Index == PEN_BUTTON){
+
+				//Touch inside drawing area
+				if (Pt_prev.x != -1 && Pt_prev.y != -1)
+					vid_draw_sloped_line_on_matrix( Pt_prev.x, Pt_prev.y, Pt.x, Pt.y, DOT_SIZE, BLACK_24, pDisplay, &drawing_grayscale_m);
+				else
+					vid_draw_circle_on_matrix(Pt.x, Pt.y, DOT_SIZE, BLACK_24, DO_FILL, pDisplay, &drawing_grayscale_m);
+
+				PtSet(&Pt_prev, X, Y);
+
+				ActiveDrawing = 1;
+				t_wait_0 = times(NULL);
+
+			}
+			else if((PressedButton == 0) && (ButtonId != BTN_NONE))
+			{
+
+				//Touch the buttons
+				(*DeskInfo).Button_Index = ButtonId;
+				PressedButton = 1;
+
+				//Clear button area and print the symbol status (pressed or not)
+				GUI_ClearButtonArea(pDisplay, DeskInfo);
+				GUI_SymbolsDraw(pDisplay, DeskInfo, PressedButton);
+
+				if (ButtonId == ERASE_BUTTON)
+				{
+					GUI_ClearPaintArea(pDisplay, DeskInfo);
+					GUI_ClearButtonArea(pDisplay, DeskInfo);
+
+					GUI_ClearLetterBoxArea(pDisplay, DeskInfo);
+					letter_index = 0;
+
+					GUI_DeskDraw(pDisplay, DeskInfo);
+					GUI_SymbolsDraw(pDisplay, DeskInfo, PressedButton);
+
+					Touch_EmptyFifo(pTouch);
+
+					matrix_clear_values(&drawing_grayscale_m);
+					matrix_clear_values(&downscaled_grayscale_m);
+
+					ActiveDrawing = 0;
+				}
+				else if (ButtonId == PEN_BUTTON)
+				{
+					GUI_ClearButtonArea(pDisplay, DeskInfo);
+					GUI_SymbolsDraw(pDisplay, DeskInfo, PressedButton);
+
+					Touch_EmptyFifo(pTouch);
+				}
+				else if (ButtonId == BACKSPACE_BUTTON)
+				{
+					GUI_ClearButtonArea(pDisplay, DeskInfo);
+					GUI_SymbolsDraw(pDisplay, DeskInfo, PressedButton);
+					Touch_EmptyFifo(pTouch);
+
+					//Delete a letter
+					letter_index--;
+					if(letter_index < 0)
+					{
+						letter_index = 0;
+					}
+					else
+					{
+						GUI_ClearSelectedLetter(pDisplay, DeskInfo, letter_index);
+						GUI_DeskDraw(pDisplay, DeskInfo);
+					}
+
+				}
+
+			}
+
+		}
+
+		if(!Touch_IsPenPressed(pTouch))
+		{
+
+			Pt_prev.x = -1;
+			Pt_prev.y = -1;
+
+		}
+
+		if((!Touch_IsPenPressed(pTouch)) && (PressedButton == 1))
+		{
+
+			PressedButton = FALSE;
+			GUI_ClearButtonArea(pDisplay, DeskInfo);
+			GUI_SymbolsDraw(pDisplay, DeskInfo, PressedButton);
+
+		}
+
+		if(((t_wait_1 - t_wait_0) >= WAIT_LETTER_TIME_MS) && (ActiveDrawing == 1))
+		{
+
+			GUI_ClearPaintArea(pDisplay, DeskInfo);
+			GUI_DeskDraw(pDisplay, DeskInfo);
+
+			Touch_EmptyFifo(pTouch);
+
+			downscale_matrix(drawing_grayscale_m, &downscaled_grayscale_m, DOWNSCALE_FACTOR);
+			matrix_flatten(in, downscaled_grayscale_m, 0);
+
+			GUI_PRINTF("\n");
+			GUI_PRINTF("Inference operation start... \n");
+
+			t_inf_0 = times(NULL);
+
+			if(forw_prop(*in, out, nn, relu_funct) == 0){
+				GUI_DEBUG_NN_PRINTF("ERROR: Forward propagation error \n");
+				status = 0;		//Error status
+				break;
+			}
+
+			char char_out = nn_output_convert(*out);
+			t_inf_1 = times(NULL);
+
+			GUI_PRINTF("Inference operation completed after %f4 seconds \n", (float)(t_inf_1 - t_inf_0)/1000);
+			GUI_PRINTF("Output value: %c \n", char_out);
+
+			//Write a letter
+			if(letter_index < LETTER_BOX_NUM){
+				vid_print_char_alpha((*DeskInfo).rcLetterBox[(LETTER_BOX_NUM-1)-letter_index].left+LETTER_X, (*DeskInfo).rcLetterBox[(LETTER_BOX_NUM-1)-letter_index].top+LETTER_Y, BUTTON_BOX_COLOR, char_out, BUTTON_BOX_BACK_COLOR, tahomabold_20, pDisplay, 0, 3);
+				letter_index++;
+			}
+
+			//GUI_DEBUG_NN_MATRIX_PRINTF(&drawing_grayscale_m);
+			//GUI_DEBUG_NN_MATRIX_PRINTF(&downscaled_grayscale_m);
+			GUI_DEBUG_NN_MATRIX_PRINTF(in);
+			GUI_DEBUG_NN_MATRIX_PRINTF(out);
+
+			matrix_clear_values(&drawing_grayscale_m);
+			matrix_clear_values(&downscaled_grayscale_m);
+
+			GUI_ClearPaintArea(pDisplay, DeskInfo);
+			GUI_DeskDraw(pDisplay, DeskInfo);
+
+			ActiveDrawing = 0;
+			t_wait_0 = times(NULL);
+
+		}
+
+    	t_wait_1 = times(NULL);
+
+	} // while
+
+    //Deallocate matrix from dynamic memory
+    matrix_free(&drawing_grayscale_m);
+    matrix_free(&downscaled_grayscale_m);
+
+	return status;	//Exit status
+
+}

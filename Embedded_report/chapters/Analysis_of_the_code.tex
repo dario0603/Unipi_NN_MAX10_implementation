@@ -1,0 +1,718 @@
+The software architecture is divided into two main parts. \\
+\textbf{Neural Network implementation} is based on two different libraries:
+
+\begin{itemize}
+
+    \setlength\itemsep{0pt}
+    \setlength\parskip{0pt}
+    
+    \item \textbf{Matrix Library}: responsible for matrix operations and mathematical computations required by the neural network.
+    
+    \item \textbf{Neural Network Library}: handles the initialization and execution of a fully connected neural network composed of three layers.
+\end{itemize}
+
+\noindent
+\textbf{Graphical User Interface (GUI) implementation} relies on two dedicated libraries used to manage communication with the display and the touchscreen:
+
+\begin{itemize}
+
+    \setlength\itemsep{0pt}
+    \setlength\parskip{0pt}
+    
+    \item \textbf{LCD Display Control Library}: handles everything related to displaying images on the LCD screen.
+    
+    \item \textbf{SPI-Based Touchscreen Control Library}: manages communication with the touchscreen using the Serial Peripheral Interface (SPI).
+\end{itemize}
+
+\subsection{Neural Network implementation}
+
+The Neural Network library folder tree is shown in \autoref{fig:NN_folder_tree}
+
+\begin{figure}[h!]
+    \begin{center}
+        \scalebox{0.85}{
+            \begin{tikzpicture}%
+               \draw[color=black!60!white]
+                \FTdir(\FTroot,root,NN\_letter\_recognition){
+                
+                ++(0,-0.5em)
+                
+                \FTdir(root,LUT,LUT){
+                    \FTdir(LUT,functions,functions){
+                        \FTfileC(functions,activation\_functions.c)
+                        \FTfileC(functions,functions.c)
+                        \FTfileH(functions,functions.h)   
+                    }
+                    \FTdir(LUT,weight-and-bias,weight\_and\_bias){
+                        \FTfileH(weight-and-bias,weight\_and\_bias.h)
+                        \FTfileC(weight-and-bias,weight\_matrix\_emnist.c)
+                        \FTfileC(weight-and-bias,weight\_matrix\_mnist.c)
+                    }
+
+                    ++(0,-0.5em)
+    
+                    \FTdir(LUT,m1,...)
+                }
+
+                ++(0,-0.5em)
+
+                \FTdir(root,NN-lib,NN\_lib){
+                    \FTfileC(NN-lib,matrix\_lib.c)
+                    \FTfileH(NN-lib,matrix\_lib.h)   
+                    \FTfileH(NN-lib,NN\_lib\_debug.h)   
+                    \FTfileC(NN-lib,NN\_lib.c)
+                    \FTfileH(NN-lib,NN\_lib.h)  
+                }
+
+                ++(0,-0.5em)
+
+                \FTdir(root,m2,...)
+
+            };
+
+            \end{tikzpicture}
+        }
+    \end{center}
+
+    \caption{Neural Network library function folder tree}
+    \label{fig:NN_folder_tree}
+    
+\end{figure}
+
+\noindent
+To implement the neural network, a matrix library has been created to define all the operations that have to be performed with matrices, and a neural network library has been created to define the network and connect all the layers together.
+
+\newpage
+\subsubsection{Matrix Library}
+\label{sssec:matrix_library}
+
+This library contains the \texttt{Matrix} type, which is a structure defined in \autoref{lst:Matrix_typedef}.
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={Matrix type}, label={lst:Matrix_typedef}, morekeywords={Matrix}]
+    typedef struct{
+        unsigned int row;
+        unsigned int col;
+        float *data;
+    }Matrix;
+\end{lstlisting}
+
+\noindent
+The \texttt{Matrix} type contains the fields \texttt{row} and \texttt{col}, which store the number of rows and columns of the matrix, and the field \texttt{*data}, which is a pointer to the matrix data. \\
+This type is defined to represent a matrix of floating-point values only, since the weights of the neural network are of type \texttt{float}. \\
+To create a matrix variable, the \texttt{malloc()} function must be used to allocate memory in the heap. \\
+In \texttt{matrix\_lib.h}, several functions are defined to instantiate a matrix variable (constructors) and to release its memory (destructor) shown in \autoref{lst:Matr_constr_destr}.
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={Constructors and Destructor}, label={lst:Matr_constr_destr}, morekeywords={Matrix}]
+    /* ---------------- Constructors ------------------ */
+    static inline Matrix matrix_error(void) {
+        return (Matrix){0, 0, NULL};
+    }
+    
+    Matrix matrix_init(unsigned int row, unsigned int col);
+    ...             
+    Matrix matrix_null(unsigned int row, unsigned int col);
+
+    /* ----------------- Destructors ------------------- */
+    void matrix_free(Matrix *m);
+\end{lstlisting}
+
+\newpage
+\noindent
+To instantiate a matrix variable the syntax is shown in \autoref{lst:matrix_usage}.
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={Matrix usage example}, label={lst:matrix_usage}, morekeywords={Matrix}]
+    int main(void){
+        Matrix m = matrix_init(ROW_NUM, COL_NUM);
+
+        Matrix error_m = matrix_error();
+        if(matrix_compare(&error_m, &m) == 1){
+            printf("ERROR: Matrix initialization failure");
+            return 0;   // Exit failure
+        }
+        
+        ...
+        
+        matrix_free(&m);
+        return 1;   // Exit success
+    }
+\end{lstlisting}
+
+\noindent
+The \texttt{matrix\_error(void)} constructor is used only to return an empty Matrix, useful to identify an error in a \texttt{Matrix} return type function as shown in \autoref{lst:matrix_usage}. \\
+Since \texttt{matrix\_error(void)} don't allocate data into dynamic memory (is an empty matrix) the destructor must not be used. \\
+In this library, the most common matrix operations such as addition, multiplication, transposition, etc., have also been defined.\\
+Most of the operations are implemented as functions that return an integer value representing the status; if the return value is 1, the operation has been completed successfully; otherwise, the operation has encountered a problem and cannot be executed correctly.
+
+\newpage
+\subsubsection{Neural Network Library}
+
+This library contains the \texttt{NN\_f\_conn} type, which is a structure defined in 
+\autoref{lst:NN_typedef}
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={NN\_f\_conn type}, label={lst:NN_typedef}, morekeywords={NN\_f\_conn, Matrix}, alsoletter={\_}]
+    typedef struct{
+        
+        Matrix w1;
+        Matrix b1;
+    
+        Matrix w2;
+        Matrix b2;
+    
+        Matrix w3;
+        Matrix b3;
+    
+    }NN_f_conn;
+\end{lstlisting}
+
+\noindent
+With this structure can be defined fully connected neural network with three layers:
+
+\begin{itemize}
+    \setlength\itemsep{0pt}
+    \setlength\parskip{0pt}
+    \item The input layer
+    \item An hidden layer
+    \item The output layer
+\end{itemize}
+
+\noindent
+This structure contains three pairs of matrices defined with the \texttt{Matrix} type described in \autoref{sssec:matrix_library}. \\
+Each pair of matrices represents the weights and biases of a layer of the fully connected neural network. \\
+The neural network is initialized using the function \texttt{NN\_init()}, which initializes all the matrices with the correct dimensions. \\
+Since the matrices contain data arrays allocated using the \texttt{malloc()} function, the \texttt{free()} function must be used to de-allocate them; the function that de-allocates all the network data is \texttt{NN\_free()} as shown in \autoref{lst:NN_constr_destr}.
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={Constructors and Destructor}, label={lst:NN_constr_destr}, morekeywords={NN\_f\_conn, Matrix}, alsoletter={\_}]
+    /* ---------------- Constructors ------------------ */
+    NN_f_conn NN_init(void);
+
+    /* ----------------- Destructors ------------------- */
+    void NN_free(NN_f_conn *nn);
+\end{lstlisting}
+
+\noindent
+The dimensions of the network layers are defined in another file located in the \texttt{./LUT/weight\_and\_bias} directory, named \texttt{weight\_and\_bias.h}. \\
+In this file, a global \texttt{Matrix} vector is defined, which contains all the weights and biases of the network. \\
+To identify at which index each matrix is stored, a global enumeration variable has been defined, as shown in \autoref{lst:NN_enum_index}.
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={Enumerate variable to identify the NN index}, label={lst:NN_enum_index}, morekeywords={NN\_weight\_index}, alsoletter={\_}]
+    typedef enum{
+        
+        WEIGHT_NN_1 = 0,
+        BIAS_NN_1 = 3,
+    
+        WEIGHT_NN_2 = 1,
+        BIAS_NN_2 = 4,
+    
+        WEIGHT_NN_3 = 2,
+        BIAS_NN_3 = 5,
+    
+    }NN_weight_index;
+\end{lstlisting}
+
+\noindent
+Since the network used for the MNIST dataset and the EMNIST dataset is, in both cases, a three-layer fully connected network (with a different number of neurons in each layer), conditional compilation is used in the header file to load one network or the other, as shown in \autoref{lst:NN_weight_sel}.
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={NN selection with conditional compilation}, label={lst:NN_weight_sel}, morekeywords={Matrix,\#include,\#define,\#ifdef,\#ifndef,\#else,\#endif}, alsoletter={\#}]
+    // Comment this line to use the EMNIST dataset
+    // (letters and numbers) instead of MNIST (only numbers)
+    #define MNIST_DATASET
+
+    #ifdef MNIST_DATASET
+        #define WEIGHT_AND_BIAS weight_and_bias_mnist
+        extern Matrix weight_and_bias_mnist[6];
+    #else
+        #define WEIGHT_AND_BIAS weight_and_bias_emnist
+        extern Matrix weight_and_bias_emnist[6];
+    #endif
+\end{lstlisting}
+
+\noindent
+\texttt{weight\_and\_bias\_mnist[6]} and \texttt{weight\_and\_bias\_emnist[6]} are two constant arrays of type \texttt{Matrix}, defined respectively in \\
+\texttt{./LUT/weight\_and\_bias/weight\_and\_bias\_mnist.c} and \\
+\texttt{./LUT/weight\_and\_bias/weight\_and\_bias\_emnist.c}.
+
+\noindent
+These matrix vectors contain the weights and biases for the MNIST and EMNIST networks. 
+
+\newpage
+\noindent
+Inside \texttt{NN\_lib}, the \texttt{NN\_init()} function uses the \texttt{WEIGHT\_AND\_BIAS} define to access the constant matrices associated with the correct dataset. \\
+The operation that can be performed are shown in \autoref{lst:NN_operations}
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={NN\_lib functions defined}, label={lst:NN_operations}, morekeywords={Matrix,\#include,\#define,\#ifdef,\#ifndef,\#else,\#endif}, alsoletter={\#}]
+    /* ---------------- Operations -------------------- */
+    int forw_prop(Matrix input, 
+                  Matrix *out, 
+                  NN_f_conn *nn, 
+                  void (*activation_funct)(Matrix *a));
+    char nn_output_convert(Matrix input);
+    
+    /* ------------- Activation functions ------------- */
+    void relu_funct(Matrix *a);
+    void leaky_relu_funct(Matrix *a);
+    void tanh_funct(Matrix *a);
+    void sigmoid_funct(Matrix *a);
+\end{lstlisting}
+
+\noindent
+The \texttt{forw\_prop()} function takes a \texttt{Matrix} type input and produces a \texttt{Matrix} output from the \texttt{NN\_f\_conn} neural network, using activation functions passed as function pointers. \\
+Several activation functions are defined; the most computationally expensive ones are implemented using look-up tables stored in \\
+\texttt{./LUT/functions/functions.h}. \\
+The function \texttt{nn\_output\_convert} determines which neural network has been selected and returns the corresponding output character from the input matrix, where the input matrix is the result computed by the network.
+
+\newpage
+\subsection{GUI implementation}
+The GUI library folder tree is shown in \autoref{fig:GUI_lib_folder_tree}
+
+\begin{figure}[h!]
+    \begin{center}
+        \scalebox{0.85}{
+            \begin{tikzpicture}%
+               \draw[color=black!60!white]
+                \FTdir(\FTroot,root,NN\_letter\_recognition){
+    
+                    ++(0,-0.5em)
+                    
+                    \FTdir(root,graphic-matrix-lib,graphic\_matrix\_lib) {
+                        \FTfileH(graphic-matrix-lib,debug\_graphic\_lib.h)
+                        \FTfileC(graphic-matrix-lib,simple\_graphics\_matrix.c)
+                        \FTfileH(graphic-matrix-lib,simple\_graphics\_matrix.h)
+                    }
+                    
+                    %++(0,-0.5em)
+    
+                    \FTdir(root,gui,gui) {
+                        \FTfileH(gui,gui\_config.h)
+                        \FTfileH(gui,gui\_debug.h)
+                        \FTfileC(gui,gui.c)
+                        \FTfileH(gui,gui.h)
+                    }
+
+                    ++(0,-0.5em)
+
+                    \FTdir(root,...,...){}
+    
+                };
+
+            \end{tikzpicture}
+        }
+    \end{center}
+
+    \caption{GUI library function folder tree}
+    \label{fig:GUI_lib_folder_tree}
+    
+\end{figure}
+
+\noindent
+The GUI library handles the operations needed to render the user interface on the display and enables touchscreen sensitivity, allowing the user to handwrite their desired character.
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={GUI initialization}, label={lst:GUI_init}]
+    void GUI_init(alt_video_display *pDisplay, 
+                  DESK_INFO *DeskInfo, 
+                  RECT *rcTouch)
+    {
+        // Init LCD
+        LCD_Init();
+        
+        // Clean LCD
+        vid_clean_screen(pDisplay, BACKGROUND_COLOR);
+        
+        // Wait 1s
+        usleep(1*1000*1000);
+        
+        (*DeskInfo).Button_Index = PEN_BUTTON;
+        
+        GUI_DeskInit(pDisplay, DeskInfo);
+        GUI_DeskDraw(pDisplay, DeskInfo);
+        GUI_SymbolsDraw(pDisplay, DeskInfo, 0);
+        
+        RectCopy(rcTouch, &(*DeskInfo).rcPaint);
+        RectInflate(rcTouch, -2-DOT_SIZE, -2-DOT_SIZE);
+    }
+\end{lstlisting}
+
+\newpage
+\noindent
+During initialization, the program builds and displays the interface \\ (\texttt{GUI\_init()}), through functions like \texttt{GUI\_DeskInit()}, \texttt{GUI\_DeskDraw()}, \\
+\texttt{GUI\_SymbolsDraw()}. \\
+Then (\autoref{lst:Touch_screen_GetXY}) it then enters a while loop that continuously detects (an alarm is implemented) the pointer's position \texttt{Touch\_GetXY()}, based on where the pen presses down. The task of checking whether the pointer is inside a specific section of the display is handled by the library function  \texttt{IsPtInRect()}. 
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={Handling the touchscreen}, label={lst:Touch_screen_GetXY}]
+    if(Touch_GetXY(pTouch, &X, &Y)){
+    
+        PtSet(&Pt, X, Y);
+        int ButtonId = GUI_CheckButton(DeskInfo, &Pt);
+    
+        GUI_DEBUG_TOUCH_PRINTF("x=%d, y=%d\r\n", X, Y);
+        GUI_DEBUG_TOUCH_PRINTF("Button index=%d\n", 
+                               (*DeskInfo).Button_Index);
+    
+        if (IsPtInRect(&Pt, rcTouch) &&  
+            (*DeskInfo).Button_Index == PEN_BUTTON){
+            // Touch inside drawing area
+            if (Pt_prev.x != -1 && Pt_prev.y != -1)
+                vid_draw_sloped_line_on_matrix( Pt_prev.x,
+                Pt_prev.y, Pt.x, Pt.y, DOT_SIZE, BLACK_24,
+                pDisplay, &drawing_grayscale_m);
+            else
+                vid_draw_circle_on_matrix(Pt.x, Pt.y,
+                DOT_SIZE, BLACK_24, DO_FILL, pDisplay,
+                &drawing_grayscale_m);
+    
+            PtSet(&Pt_prev, X, Y);    
+        }
+    }
+\end{lstlisting}
+
+\noindent
+To draw the pen strokes, we used the\\
+\texttt{vid\_draw\_sloped\_line\_on\_matrix()} function. \\
+This "interpolates" the detected touchpoints by connecting them with a sloped line. \\
+This approach gives us a very smooth drawing and writing experience without needing to bump up the touch-detection refresh rate, avoiding extra overhead.
+
+\newpage
+\noindent
+On the other hand, if a press is detected on one of the available virtual buttons (or icons), the system behaves differently:
+
+\begin{itemize}
+
+    \setlength\itemsep{0pt}
+    \setlength\parskip{0pt}
+    
+    \item \texttt{BACKSPACE\_BUTTON}: deletes the last character written in the letter box at the top of the display. If the letter box fills up, the last entered character is overwritten.
+    
+    \item \texttt{PEN\_BUTTON}: enables pen writing exclusively within the dedicated drawing area. There is a timer that triggers once the pen is lifted; when it times out, the data saved in the 140x140 matrix is downscaled to a 28x28 grayscale matrix, by the \texttt{downscale\_matrix()} function, and fed into the neural network.
+
+    \item \texttt{ERASE\_BUTTON}: clears everything written in the letter box as well as any letter currently being drawn, resetting the interface to its initial state.
+\end{itemize}
+
+\vspace{1em}
+\begin{lstlisting}[language=C, caption={Handling the buttons}, label={lst:Touch_screen_buttons}]
+    if(ButtonId == BACKSPACE_BUTTON){
+    
+        GUI_ClearButtonArea(pDisplay, DeskInfo);
+        GUI_SymbolsDraw(pDisplay, DeskInfo, PressedButton);
+        Touch_EmptyFifo(pTouch);
+    
+        // Delete a letter
+        letter_index--;
+        if(letter_index < 0){
+            letter_index = 0;
+        }
+        else{
+            GUI_ClearSelectedLetter(pDisplay, DeskInfo,
+            letter_index);
+            GUI_DeskDraw(pDisplay, DeskInfo);
+        }
+    
+    }
+\end{lstlisting}
+
+\noindent
+As an example, only the operations that are performed after the \\\texttt{BACKSPACE\_BUTTON} is pressed are shown.
+
+\noindent
+Once the pen is released for \texttt{WAIT\_LETTER\_TIME\_MS} (which we set to 1.5 seconds in our tests), the cleanup operations kick off: the drawing area is cleared via \texttt{GUI\_ClearPaintArea()}, and the touch SPI's FIFO memory is emptied. \\
+After that, the matrix is downscaled and adapted using \texttt{downscale\_matrix()} and \texttt{matrix\_flatten()} so it's in the right format to be fed into the neural network for forward propagation \texttt{via forw\_prop()} function.
+
+\newpage
+
+\begin{lstlisting}[language=C, caption={Sending the input to the Neural Network}, label={lst:NN_input_output}]
+    if (((t_wait_1 - t_wait_0) >= WAIT_LETTER_TIME_MS) && 
+        (ActiveDrawing == 1)){
+        
+        GUI_ClearPaintArea(pDisplay, DeskInfo);
+        GUI_DeskDraw(pDisplay, DeskInfo);
+    
+        Touch_EmptyFifo(pTouch);
+    
+        downscale_matrix(drawing_grayscale_m,
+                         &downscaled_grayscale_m,
+                         DOWNSCALE_FACTOR);
+    
+        matrix_flatten(in, downscaled_grayscale_m, 0);
+    
+        GUI_PRINTF("\n");
+        GUI_PRINTF("Inference operation start... \n");
+    
+        t_inf_0 = times(NULL);
+    
+        if (forw_prop(*in, out, nn, relu_funct) == 0){
+            GUI_DEBUG_NN_PRINTF("ERROR: Forward propagation
+            error \n");
+            status = 0;      // Error status
+            break;
+        }
+    
+        char char_out = nn_output_convert(*out);
+        t_inf_1 = times(NULL);
+    
+        GUI_PRINTF("Inference operation completed after %f4
+        seconds \n", (float)(t_inf_1 - t_inf_0)/1000);
+        GUI_PRINTF("Output value: %c \n", char_out);
+        
+        ...
+        
+    }
+\end{lstlisting}
+
+\noindent
+The \texttt{downscale\_matrix()} function resizes a 140x140 black and white pixel matrix down to a 28x28 grayscale matrix. Since the 140x140 matrix is exactly 25 times larger than the 28x28 one, it averages the values of the 25 pixels from the larger matrix and saves that grayscale value into the smaller one. \\
+This adapts the data to the neural network's input layer, which consists of 784 neurons (28x28), while keeping the averaged information as grayscale. It's worth noting that an \texttt{OFFSET\_VALUE} was added for any saved values greater than zero, a neat tweak that further improves how closely it matches the neural network's training dataset.
+
+\newpage
+
+\begin{lstlisting}[language=C, caption={Matrix downscaling}, label={lst:Matrix_dowscale}, morekeywords={Matrix,\#include,\#define,\#ifdef,\#ifndef,\#else,\#endif}, alsoletter={\#}]
+    int downscale_matrix(Matrix in, Matrix *out, int dwn_fact){
+        
+        ...
+        
+        float acc = 0;
+        unsigned int i,j,k,m;
+        for (i = 0; i < DRAW_RECT_WIDTH; i+=dwn_fact){
+            for (j = 0; j < DRAW_RECT_HEIGHT; j+=dwn_fact){
+                for (k = 0; k < dwn_fact; k++){
+                    for (m = 0; m < dwn_fact; m++){
+                        // Matrix indexing syntax
+                        // m[column * row_length + row] -> 
+                        // m[row][column]
+                        acc += 
+                        in.data[(j + m) * in.row + (i + k)];
+                    }
+                }
+        
+                // The new value is represented with 
+                // gray scale on 8 bit (256)
+                acc = acc / 25;
+        
+                // Regulate the offset
+                acc = 
+                (acc > 0.0f) ? (acc + OFFSET_VALUE) : (acc);
+                acc = 
+                (acc > 1.0f) ? (1.0f) : (acc);
+
+                // Matrix indexing syntax
+                // m[column * row_length + row] -> 
+                // m[row][column]
+                (*out).data[
+                (j / dwn_fact) * (*out).row + (i / dwn_fact)
+                ] = acc;
+        
+                acc = 0;
+            }
+        }
+        
+        return 1;   // Exit success
+    }
+\end{lstlisting}
+
+
+
+\newpage
+\subsubsection{LCD Display Control Library}
+
+
+\begin{figure}[h!]
+    \begin{center}
+        \scalebox{0.85}{
+            \begin{tikzpicture}%
+                \draw[color=black!60!white]
+                \FTdir(\FTroot,root,NN\_letter\_recognition){
+    
+                    ++(0,-0.5em)
+                    
+                    \FTdir(root,graphic-lib,graphic\_lib) {
+                        \FTfileH(graphic-lib,ILI9341.h)
+                        \FTfileH(graphic-lib,simple\_graphics.h)
+                        \FTfileH(graphic-lib,simple\_text.h)
+                        \FTfile(graphic-lib,...)
+                    }
+    
+                    ++(0,-0.5em)
+                    
+                    \FTdir(root,graphic-matrix-lib,graphic\_matrix\_lib) {
+                        \FTfileH(graphic-matrix-lib,debug\_graphic\_lib.h)
+                        \FTfileC(graphic-matrix-lib,simple\_graphics\_matrix.c)
+                        \FTfileH(graphic-matrix-lib,simple\_graphics\_matrix.h)
+                    }
+    
+                    ++(0,-0.5em)
+                    
+                    \FTdir(root,LUT,LUT){
+                        \FTdir(LUT,fonts,fonts){
+                            \FTfileH(fonts,fonts.h)
+                            \FTfileC(fonts,tahomabold\_20.c)
+                            \FTfileC(fonts,tahomabold\_32.c)
+                        }
+                        \FTdir(LUT,symbols,symbols){
+                            \FTfileH(symbols,symbols.h)
+                            \FTfileC(symbols,symbol\_set.c)
+                        }
+                        
+                        \FTdir(LUT,m1,...)
+                    }
+    
+                    ++(0,-0.5em)
+    
+                    \FTdir(root,m2,...)
+    
+                };
+            \end{tikzpicture}
+        }
+    \end{center}
+
+    \caption{Graphic library function folder tree}
+    \label{fig:graph_lib_folder_tree}
+    
+\end{figure}
+
+\noindent
+To control the display, the \texttt{graphic\_lib} library has been used; it contains different headers to control the LCD module. \\
+The heart of the library is the \texttt{ILI9341.h} header, which contains all the functions required to initialize the LCD and write to it. \\
+Two other headers are also present: \\
+\texttt{simple\_graphics.h} and \texttt{simple\_text.h}. \\
+These two headers contain all the functions that, by using the \\
+\texttt{ILI9341.h} functions, draw useful geometric shapes such as rectangles, circles, etc. \\
+The functions contained in \\
+\texttt{simple\_text.h} are used to write letters and numbers using a specified font, saved into a LUT and defined in another file and linked by another header called \texttt{fonts.h}. \\
+The \texttt{graphic\_lib} library files are stored into the folder \texttt{./graphic\_lib} the fonts LUT and header are store into the folder \texttt{./LUT/fonts}. \\
+The header and source files are distributed in different folders, the folder tree is shown in \autoref{fig:graph_lib_folder_tree}.
+
+\newpage
+\subsubsection{SPI-Based Touchscreen Control Library}
+
+
+\begin{figure}[h!]
+    \begin{center}
+        \scalebox{0.85}{
+            \begin{tikzpicture}%
+               \draw[color=black!60!white]
+                \FTdir(\FTroot,root,NN\_letter\_recognition){
+                
+                     ++(0,-0.5em)
+                    
+                    \FTdir(root,geometry,geometry){
+                        \FTfileC(geometry,geometry.c)
+                        \FTfileH(geometry,geometry.h)
+                    }
+
+                    ++(0,-0.5em)
+    
+                    \FTdir(root,terasic-lib,terasic\_lib){
+                        \FTfileC(terasic-lib,touch\_spi.c) 
+                        \FTfileH(terasic-lib,touch\_spi.h) 
+                        \FTfile(terasic-lib,...) 
+                    }
+
+                    ++(0,-0.5em)
+    
+                    \FTdir(root,m2,...)
+    
+                };
+            \end{tikzpicture}
+        }
+    \end{center}
+
+    \caption{Touch screen library function folder tree}
+    \label{fig:touch_lib_folder_tree}
+    
+\end{figure}
+
+\noindent
+In these library files are present some useful functions to let the touchscreen to be programmed more easily. The \texttt{touch\_spi.c} contains all those functions to get the position of the pointer on the screen (\texttt{Touch\_GetXY()}), to sense if the pen is pressed (\texttt{Touch\_IsPenPressed()}) or to empty the FIFO buffer (\texttt{Touch\_EmptyFifo()}). \\
+The \texttt{geometry.c} contains all the functions to create and handle rectangles to sense a specific area of the screen. 
+
+\subsection{Main structure}
+
+\begin{figure}[h!]
+    \begin{center}
+        \scalebox{0.85}{
+            \begin{tikzpicture}%
+               \draw[color=black!60!white]
+                \FTdir(\FTroot,root,NN\_letter\_recognition){
+    
+                    ++(0,-0.5em)
+                    
+                    \FTdir(root,src,src){
+                        \FTfileC(src,main.c) 
+                    }
+
+                    ++(0,-0.5em)
+
+                    \FTdir(root,...,...){}
+    
+                };
+
+            \end{tikzpicture}
+        }
+    \end{center}
+
+    \caption{Main location on folder tree}
+    \label{fig:main_folder_tree}
+    
+\end{figure}
+
+\noindent
+The \texttt{main()} function's job is to call the initialization routines for the LT24 touchscreen display, print to the console which dataset was selected, and finally launch the \texttt{GUI())} function, which handles the actual user interface and triggers the neural network processing. \\
+The code is shown in \autoref{lst:main}.
+
+\newpage
+\begin{lstlisting}[language=C, caption={Main}, label={lst:main}, morekeywords={NN_f_conn,Matrix,\#include,\#define,\#ifdef,\#ifndef,\#else,\#endif}, alsoletter={\#}]
+    int main(void){  
+        // Init display
+        alt_video_display Display = {.interlace = 0, 
+        .bytes_per_pixel = 2, ... };
+        
+        // Init touch
+        TOUCH_HANDLE *pTouch;
+        pTouch = Touch_Init(TOUCH_PANEL_SPI_BASE, ... );
+        if(!pTouch){
+            printf("Failed to init touch\r\n");
+            return 0;       //Exit failure
+        }        
+        printf("Init touch successfully\r\n");
+        
+        // Init LCD
+        DESK_INFO DeskInfo; RECT rcTouch;
+        GUI_init(&Display, &DeskInfo, &rcTouch);
+        
+        // Init neural network
+        Matrix in, out;
+        NN_f_conn nn;
+        int status = NN_Matrix_init(&in, &out, &nn);
+        
+        if(status == 1){
+            #ifdef MNIST_DATASET
+                printf("MNIST DATASET loaded\r\n");
+            #else
+                printf("EMNIST DATASET loaded\r\n");
+            #endif
+        }else{
+            #ifdef MNIST_DATASET
+                printf("Error loading MNIST DATASET\r\n");
+            #else
+                printf("Error loading EMNIST DATASET\r\n");
+            #endif
+        };
+        
+        if(status == 1)
+            // Print GUI
+            status = GUI(&Display, pTouch, &in, &out, ... );
+        
+        // Deallocate matrix from dynamic memory
+        matrix_free(&in); matrix_free(&out); NN_free(&nn);
+        
+        return status;       //Exit status
+    }
+    
+\end{lstlisting}

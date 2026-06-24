@@ -1,0 +1,50 @@
+/*
+ * gui_config.h
+ *
+ *  Created on: 27 apr 2026
+ *      Author: posta
+ */
+
+#ifndef GUI_GUI_CONFIG_H_
+#define GUI_GUI_CONFIG_H_
+
+#include "../graphic_lib/simple_graphics.h"
+
+//background color
+//color format -> RGB24
+#define BACKGROUND_COLOR		WHITE_24
+
+//drawing box parameters (IT MUST BE A SQUARE, better if multiple of 28)
+#define DRAW_RECT_WIDTH				140
+#define DRAW_RECT_HEIGHT			140
+#define DRAW_RECT_RADIUS			10
+#define DRAW_DIST_FROM_BOTTOM		55
+#define DRAW_DIST_FROM_RIGHT		20
+//color format -> RGB24
+#define BOX_COLOR				BLACK_24
+
+//letter bar parameters
+#define LETTER_BOX_DIM				30
+#define LETTER_BOX_DIST_FROM_TOP	20
+#define LETTER_BOX_NUM				10
+#define LETTER_X					1
+#define LETTER_Y					8
+#define WAIT_LETTER_TIME_MS			1500	//time in ms (milliseconds)
+
+//button box parameters
+#define BUTTON_BOX_DIST_FROM_BOTTOM		15
+#define BUTTON_BOX_DIST_FROM_EDGE		20
+//color format -> RGB565
+#define BUTTON_BOX_BACK_COLOR			WHITE_16
+#define BUTTON_BOX_COLOR				BLACK_16
+
+//down-scaled 28x28 matrix dimension
+#define X_DIM 					28
+#define Y_DIM					28
+#define DOWNSCALE_FACTOR	 	DRAW_RECT_WIDTH/X_DIM
+#define OFFSET_VALUE			0.2f
+
+//dot size for pen while drawing
+#define DOT_SIZE    4
+
+#endif /* GUI_GUI_CONFIG_H_ */

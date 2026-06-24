@@ -1,0 +1,42 @@
+# system info DE10_Lite_SOPC on 2026.05.19.16:03:27
+system_info:
+name,value
+DEVICE,10M50DAF484C6GES
+DEVICE_FAMILY,MAX 10
+GENERATION_ID,1779199396
+#
+#
+# Files generated for DE10_Lite_SOPC on 2026.05.19.16:03:27
+files:
+filepath,kind,attributes,module,is_top
+simulation/DE10_Lite_SOPC.v,VERILOG,,DE10_Lite_SOPC,true
+simulation/submodules/DE10_Lite_SOPC_LCD_RESET_N.v,VERILOG,,DE10_Lite_SOPC_LCD_RESET_N,false
+#
+# Map from instance-path to kind of module
+instances:
+instancePath,module
+DE10_Lite_SOPC.LCD_RESET_N,DE10_Lite_SOPC_LCD_RESET_N
+DE10_Lite_SOPC.LT24_Controller,DE10_Lite_SOPC_LT24_Controller
+DE10_Lite_SOPC.SEG7,DE10_Lite_SOPC_SEG7
+DE10_Lite_SOPC.jtag_uart,DE10_Lite_SOPC_jtag_uart
+DE10_Lite_SOPC.mm_clock_crossing_bridge_0,altera_avalon_mm_clock_crossing_bridge
+DE10_Lite_SOPC.nios2_gen2,DE10_Lite_SOPC_nios2_gen2
+DE10_Lite_SOPC.onchip_memory,DE10_Lite_SOPC_onchip_memory
+DE10_Lite_SOPC.pio_key,DE10_Lite_SOPC_pio_key
+DE10_Lite_SOPC.pio_led,DE10_Lite_SOPC_pio_led
+DE10_Lite_SOPC.pio_sw,DE10_Lite_SOPC_pio_sw
+DE10_Lite_SOPC.sdram,DE10_Lite_SOPC_sdram
+DE10_Lite_SOPC.sysid_qsys,DE10_Lite_SOPC_sysid_qsys
+DE10_Lite_SOPC.system_pll,DE10_Lite_SOPC_system_pll
+DE10_Lite_SOPC.timer,DE10_Lite_SOPC_timer
+DE10_Lite_SOPC.touch_panel_busy,DE10_Lite_SOPC_touch_panel_busy
+DE10_Lite_SOPC.touch_panel_pen_irq_n,DE10_Lite_SOPC_touch_panel_pen_irq_n
+DE10_Lite_SOPC.touch_panel_spi,DE10_Lite_SOPC_touch_panel_spi
+DE10_Lite_SOPC.mm_interconnect_0,DE10_Lite_SOPC_mm_interconnect_0
+DE10_Lite_SOPC.mm_interconnect_1,DE10_Lite_SOPC_mm_interconnect_1
+DE10_Lite_SOPC.irq_mapper,DE10_Lite_SOPC_irq_mapper
+DE10_Lite_SOPC.irq_synchronizer,altera_irq_clock_crosser
+DE10_Lite_SOPC.irq_synchronizer_001,altera_irq_clock_crosser
+DE10_Lite_SOPC.rst_controller,altera_reset_controller
+DE10_Lite_SOPC.rst_controller_001,altera_reset_controller
+DE10_Lite_SOPC.rst_controller_002,altera_reset_controller

@@ -1,0 +1,154 @@
+\documentclass{article}
+\usepackage{tikz}
+\usepackage{fontawesome}
+
+\definecolor{folder}{RGB}{153,153,153}
+\definecolor{file}{RGB}{110,144,169}
+
+\newcommand{\FTdir}{}
+\def\FTdir(#1,#2,#3){%
+    \FTtext(#1,{{\color{folder}\faFolderOpen}\hspace{0.2em}#3})
+    (tmp.west)++(0.8em,-0.4em)node(#2){}
+    (tmp.west)++(1.5em,0)
+    ++(0,-1.3em) 
+}
+
+\def\FTfileC(#1,#2){%
+    \FTtext(#1,{
+        {\color{file}\makebox[0pt]{\faFileO}}%
+        \hspace{0.55em}%
+        \raisebox{0ex}{\color{file}\hspace{-0.72em}\scriptsize{C}}%
+        \hspace{0.7em}#2
+    })
+    (tmp.west)++(1.5em,0)
+    ++(0,-1.3em)
+}
+
+\def\FTfileH(#1,#2){%
+    \FTtext(#1,{
+        {\color{file}\makebox[0pt]{\faFileO}}%
+        \hspace{0.55em}%
+        \raisebox{0ex}{\color{file}\hspace{-0.72em}\scriptsize{H}}%
+        \hspace{0.7em}#2
+    })
+    (tmp.west)++(1.5em,0)
+    ++(0,-1.3em)
+}
+
+\def\FTfile(#1,#2){%
+    \FTtext(#1,{
+        {\color{file}\makebox[0pt]{\faFileO}}%
+        \hspace{0.55em}%
+        \raisebox{0ex}{\color{file}\hspace{-0.72em}\scriptsize{}}%
+        \hspace{0.7em}#2
+    })
+    (tmp.west)++(1.5em,0)
+    ++(0,-1.3em)
+}
+
+\newcommand{\FTtext}{}
+\def\FTtext(#1,#2){%
+    node(tmp){}
+    (#1|-tmp)++(0.6em,0)
+    node(tmp)[anchor=west,black]{\tt #2}
+    (#1)|-(tmp.west)
+    ++(0,-1.2em) 
+}
+
+\newcommand{\FTroot}{}
+\def\FTroot{tmp.west}
+
+\begin{document}
+    
+    \begin{figure}[h!]
+        \begin{center}
+        
+            \scalebox{0.85}{
+                \begin{tikzpicture}%
+                    \draw[color=black!60!white]
+                    \FTdir(\FTroot,root,NN\_letter\_recognition){
+        
+                        ++(0,-0.5em)
+                        
+                        \FTdir(root,geometry,geometry){
+                            \FTfileC(geometry,geometry.c)
+                            \FTfileH(geometry,geometry.h)
+                        }
+                        
+                        %++(0,-0.5em)
+                        
+                        \FTdir(root,graphic-lib,graphic\_lib) {
+                            \FTfileH(graphic-lib,alt\_video\_display.h)
+                            \FTfileC(graphic-lib,ILI9341.c)
+                            \FTfileH(graphic-lib,ILI9341.h)
+                            \FTfileC(graphic-lib,simple\_graphics.c)
+                            \FTfileH(graphic-lib,simple\_graphics.h)
+                            \FTfileC(graphic-lib,simple\_text.c)
+                            \FTfileH(graphic-lib,simple\_text.h)
+                        }
+                        
+                        \FTdir(root,graphic-matrix-lib,graphic\_matrix\_lib) {
+                            \FTfileH(graphic-matrix-lib,debug\_graphic\_lib.h)
+                            \FTfileC(graphic-matrix-lib,simple\_graphics\_matrix.c)
+                            \FTfileH(graphic-matrix-lib,simple\_graphics\_matrix.h)
+                        }
+                        
+                        %++(0,-0.5em)
+        
+                        \FTdir(root,gui,gui) {
+                            \FTfileH(gui,gui\_config.h)
+                            \FTfileH(gui,gui\_debug.h)
+                            \FTfileC(gui,gui.c)
+                            \FTfileH(gui,gui.h)
+                        }
+                        
+                        %++(0,-0.5em)
+                        
+                        \FTdir(root,LUT,LUT){
+                            \FTdir(LUT,fonts,fonts){
+                                \FTfileH(fonts,fonts.h)
+                                \FTfileC(fonts,tahomabold\_20.c)
+                                \FTfileC(fonts,tahomabold\_32.c)
+                            }
+                            \FTdir(LUT,functions,functions){
+                                \FTfileC(functions,activation\_functions.c)
+                                \FTfileC(functions,functions.c)
+                                \FTfileH(functions,functions.h)   
+                            }
+                            \FTdir(LUT,symbols,symbols){
+                                \FTfileH(symbols,symbols.h)
+                                \FTfileC(symbols,symbol\_set.c)
+                            }
+                            \FTdir(LUT,weight-and-bias,weight\_and\_bias){
+                                \FTfileH(weight-and-bias,weight\_and\_bias.h)
+                                \FTfileC(weight-and-bias,weight\_matrix\_emnist.c)
+                                \FTfileC(weight-and-bias,weight\_matrix\_mnist.c)
+                            }
+                        }
+        
+                        \FTdir(root,NN-lib,NN\_lib){
+                            \FTfileC(NN-lib,matrix\_lib.c)
+                            \FTfileH(NN-lib,matrix\_lib.h)   
+                            \FTfileH(NN-lib,NN\_lib\_debug.h)   
+                            \FTfileC(NN-lib,NN\_lib.c)
+                            \FTfileH(NN-lib,NN\_lib.h)  
+                        }
+        
+                        \FTdir(root,src,src){
+                            \FTfileC(src,main.c) 
+                        }
+        
+                        \FTdir(root,terasic-lib,terasic\_lib){
+                            \FTfileC(terasic-lib,touch\_spi.c) 
+                            \FTfileH(terasic-lib,touch\_spi.h) 
+                            \FTfile(terasic-lib,...) 
+                        }
+        
+                    };
+                \end{tikzpicture}
+
+            }
+        \end{center}
+    \end{figure}
+
+\end{document}

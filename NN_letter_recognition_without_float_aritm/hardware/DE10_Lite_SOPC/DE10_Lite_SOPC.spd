@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<simPackage>
+ <file
+   path="simulation/submodules/DE10_Lite_SOPC_LCD_RESET_N.v"
+   type="VERILOG"
+   library="LCD_RESET_N" />
+ <file path="simulation/DE10_Lite_SOPC.v" type="VERILOG" />
+ <topLevel name="DE10_Lite_SOPC" />
+ <deviceFamily name="max10" />
+ <modelMap
+   controllerPath="DE10_Lite_SOPC.onchip_memory"
+   modelPath="DE10_Lite_SOPC.onchip_memory" />
+</simPackage>
