@@ -1,12 +1,13 @@
 # Handwritten Character Recognition on Intel MAX 10 FPGA
 
-<p align="center">
-  <img src="https://img.shields.io/badge/FPGA-Intel%20MAX%2010-0071C5?style=for-the-badge&logo=intel&logoColor=white" alt="Intel MAX 10 FPGA">
-  <img src="https://img.shields.io/badge/EDA-Quartus%20Prime-0071C5?style=for-the-badge&logo=intel&logoColor=white" alt="Quartus Prime">
-  <img src="https://img.shields.io/badge/IDE-Eclipse-2C2255?style=for-the-badge&logo=eclipseide&logoColor=white" alt="Eclipse IDE">
-  <img src="https://img.shields.io/badge/ML-PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" alt="PyTorch">
-  <img src="https://img.shields.io/badge/Language-C%20%2F%20C%2B%2B-00599C?style=for-the-badge&logo=cplusplus&logoColor=white" alt="C and C++">
-</p>
+[![FPGA](https://img.shields.io/badge/FPGA-Intel%20MAX%2010-0071C5?style=flat&logo=intel&logoColor=white)](https://www.intel.com)
+[![EDA](https://img.shields.io/badge/EDA-Quartus%20Prime-00599C?style=flat&logo=altera&logoColor=white)](https://www.intel.com)
+[![IDE](https://img.shields.io/badge/IDE-Eclipse%20Nios%20II-2C2255?style=flat&logo=eclipseide&logoColor=white)](https://www.eclipse.org)
+[![Framework](https://img.shields.io/badge/Framework-PyTorch-EE4C2C?style=flat&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![Language](https://img.shields.io/badge/Language-C%20%2F%20C%2B%2B-00599C?style=flat&logo=cplusplus&logoColor=white)](https://isocpp.org)
+[![Status](https://img.shields.io/badge/Status-Completed-success)](#)
+[![Document](https://img.shields.io/badge/Report-PDF-red?style=flat&logo=adobe-acrobat-reader&logoColor=white)](./)
+[![Presentation](https://img.shields.io/badge/Presentation-PowerPoint-D04423?style=flat&logo=microsoft-powerpoint&logoColor=white)](./)
 
 Academic project at the **University of Pisa** focused on deploying and optimizing a neural network for handwritten character recognition on an embedded FPGA platform.
 
